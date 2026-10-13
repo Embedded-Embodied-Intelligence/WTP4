@@ -335,8 +335,8 @@ NORMA/OSTRZEZENIE/ALARM, a dla MAINT: OK/PLAN/KONTROLA).
   (na darmowym koncie kompilacja czeka w kolejce, zwykle 40–60 s).
 - **Jednorazowy skok prognozy:** w jednym z przebiegów (maszyna zatrzymana, puste okno trendu)
   pojedynczy krok analizy dał prognozę „1 h (trend drgan)”, której logika nie może wyliczyć z pustego
-  okna. Nie udało się tego powtórzyć ani ustalić przyczyny (wykluczone: dostęp do danych z innych
-  zadań, obliczenia zmiennoprzecinkowe w przerwaniach). Zabezpieczenie: podwyższenie statusu wymaga
+  okna. Wystąpiło raz na ok. 420 kroków analizy; przyczyny nie ustalono (wykluczone: dostęp do danych
+  z innych zadań, obliczenia zmiennoprzecinkowe w przerwaniach). Zabezpieczenie: podwyższenie statusu wymaga
   potwierdzenia w 2 kolejnych krokach – taki pojedynczy skok nie wywołuje już alarmu.
 
 ## Dziennik decyzji projektowych
