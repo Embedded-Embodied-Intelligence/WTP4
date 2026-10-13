@@ -1,0 +1,18 @@
+# Wokwi Library List
+# Projekt: Inteligentny system utrzymania ruchu maszyn (ESP32, Predictive Maintenance)
+# Wersje przypięte (@x.y.z) dla powtarzalnej kompilacji - zweryfikowane
+# w indeksie Arduino Library Manager (2026-10-13).
+
+# Komunikacja IoT: klient MQTT (telemetria + zdarzenia do systemu nadrzędnego)
+PubSubClient@2.8.0
+
+# DHT22 - temperatura/wilgotność; biblioteka zalecana przez Wokwi dla ESP32
+DHT sensor library for ESPx@1.19.0
+
+# OLED SSD1306 128x64 na drugiej magistrali I2C (Wire1)
+Adafruit SSD1306@2.5.17
+Adafruit GFX Library@1.12.6
+Adafruit BusIO@1.17.4
+
+# MPU6050 - celowo bez biblioteki: własny, lekki sterownik rejestrowy
+# (jeden odczyt burst 14 B przez Wire), mniej zależności i pamięci.
