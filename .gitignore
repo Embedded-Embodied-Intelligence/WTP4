@@ -150,3 +150,7 @@ vite.config.ts.timestamp-*
 
 # macOS
 .DS_Store
+
+# Pliki lokalne projektu (wytyczne prowadzącego, plik wykonywalny testów)
+/Wytyczne Projektowe*.md
+/test_predictive
