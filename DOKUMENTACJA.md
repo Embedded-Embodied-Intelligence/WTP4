@@ -478,7 +478,7 @@ flowchart TD
 | Technika | Efekt |
 |---|---|
 | alokacja statyczna; brak `String` i `malloc` w pętli pracy | brak fragmentacji sterty; kod aplikacji alokuje pamięć tylko przy starcie (kolejki i stosy zadań FreeRTOS, bufor ramki OLED 1 KB, bufor klienta MQTT); stos sieciowy zarządza swoją pamięcią samodzielnie |
-| struktury upakowane, zapis stałoprzecinkowy (`static_assert` na rozmiar) | zdarzenie 16 B, rekord historii 16 B, liczniki NVS 40 B; historia 10 min = 1,9 KB RAM |
+| struktury upakowane, zapis stałoprzecinkowy | zdarzenie 16 B; rekord historii 16 B i liczniki NVS 40 B (rozmiar pilnowany przez `static_assert`); historia 10 min = 1,9 KB RAM |
 | akumulacja okna drgań zamiast bufora próbek | pamięć O(1), pierwiastek liczony raz na okno |
 | trend regresji O(1) (sumy przesuwne) | koszt kroku analizy niezależny od długości okna |
 | zadania wyzwalane zdarzeniami (powiadomienia, kolejki) | brak aktywnego czekania i `delay()`; procesor śpi między zdarzeniami |

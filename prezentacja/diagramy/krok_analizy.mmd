@@ -1,0 +1,12 @@
+%% Krok analizy predykcyjnej – wersja na slajd (pełna: DOKUMENTACJA.md, rys. 5)
+flowchart LR
+  A["Pomiary<br/>T · RH · v drgań"] --> B["Zużycie<br/>k = k_T · k_V"]
+  A --> C["Trendy<br/>regresja + R²"]
+  A --> D["Progi<br/>ISA-18.2"]
+  B --> E["Prognoza<br/>min(zużycie, trend T, trend v)"]
+  C --> E
+  D --> F["Diagnoza<br/>korelacja parametrów"]
+  C --> F
+  E --> G["Status<br/>OK · PLAN · KONTROLA"]
+  F --> G
+  D --> G

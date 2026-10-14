@@ -1,0 +1,11 @@
+%% Przepływ danych – wersja uproszczona na slajd (pełna: DOKUMENTACJA.md, rys. 3)
+flowchart LR
+  T["Timer 100 Hz<br/>(przerwanie)"] --> A["Akwizycja<br/>rdzeń 1 · priorytet 3<br/>tylko liczby całkowite"]
+  M[("MPU6050<br/>drgania")] --> A
+  A -->|"okno 1 s"| C["Sterownik<br/>rdzeń 1 · analiza<br/>predictive.h"]
+  D[("DHT22<br/>T, RH")] --> C
+  B["ACK · SERWIS · RUN<br/>(przerwania)"] --> C
+  C --> H["OLED · LED · buzzer<br/>konsola"]
+  C <--> N[("NVS<br/>liczniki")]
+  C -->|"stan, zdarzenia"| K["Komunikacja<br/>rdzeń 0"]
+  K <-->|"MQTT"| S[("Broker<br/>system nadrzędny")]

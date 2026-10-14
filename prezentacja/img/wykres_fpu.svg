@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 620" width="1200" height="620">
+  <rect width="1200" height="620" fill="white"/>
+  <line x1="110" y1="530.0" x2="1160" y2="530.0" stroke="#D9E2EC" stroke-width="1.5"/>
+  <text x="96.0" y="537.0" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="20" fill="#52606D" text-anchor="end" font-weight="normal">0</text>
+  <line x1="110" y1="448.3" x2="1160" y2="448.3" stroke="#D9E2EC" stroke-width="1.5"/>
+  <text x="96.0" y="455.3" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="20" fill="#52606D" text-anchor="end" font-weight="normal">20</text>
+  <line x1="110" y1="366.7" x2="1160" y2="366.7" stroke="#D9E2EC" stroke-width="1.5"/>
+  <text x="96.0" y="373.7" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="20" fill="#52606D" text-anchor="end" font-weight="normal">40</text>
+  <line x1="110" y1="285.0" x2="1160" y2="285.0" stroke="#D9E2EC" stroke-width="1.5"/>
+  <text x="96.0" y="292.0" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="20" fill="#52606D" text-anchor="end" font-weight="normal">60</text>
+  <line x1="110" y1="203.3" x2="1160" y2="203.3" stroke="#D9E2EC" stroke-width="1.5"/>
+  <text x="96.0" y="210.3" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="20" fill="#52606D" text-anchor="end" font-weight="normal">80</text>
+  <line x1="110" y1="121.7" x2="1160" y2="121.7" stroke="#D9E2EC" stroke-width="1.5"/>
+  <text x="96.0" y="128.7" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="20" fill="#52606D" text-anchor="end" font-weight="normal">100</text>
+  <line x1="110" y1="40.0" x2="1160" y2="40.0" stroke="#D9E2EC" stroke-width="1.5"/>
+  <text x="96.0" y="47.0" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="20" fill="#52606D" text-anchor="end" font-weight="normal">120</text>
+  <line x1="110.0" y1="530" x2="110.0" y2="538" stroke="#52606D" stroke-width="2"/>
+  <text x="110.0" y="564.0" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="20" fill="#52606D" text-anchor="middle" font-weight="normal">0</text>
+  <line x1="241.2" y1="530" x2="241.2" y2="538" stroke="#52606D" stroke-width="2"/>
+  <text x="241.2" y="564.0" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="20" fill="#52606D" text-anchor="middle" font-weight="normal">50</text>
+  <line x1="372.5" y1="530" x2="372.5" y2="538" stroke="#52606D" stroke-width="2"/>
+  <text x="372.5" y="564.0" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="20" fill="#52606D" text-anchor="middle" font-weight="normal">100</text>
+  <line x1="503.8" y1="530" x2="503.8" y2="538" stroke="#52606D" stroke-width="2"/>
+  <text x="503.8" y="564.0" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="20" fill="#52606D" text-anchor="middle" font-weight="normal">150</text>
+  <line x1="635.0" y1="530" x2="635.0" y2="538" stroke="#52606D" stroke-width="2"/>
+  <text x="635.0" y="564.0" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="20" fill="#52606D" text-anchor="middle" font-weight="normal">200</text>
+  <line x1="766.2" y1="530" x2="766.2" y2="538" stroke="#52606D" stroke-width="2"/>
+  <text x="766.2" y="564.0" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="20" fill="#52606D" text-anchor="middle" font-weight="normal">250</text>
+  <line x1="897.5" y1="530" x2="897.5" y2="538" stroke="#52606D" stroke-width="2"/>
+  <text x="897.5" y="564.0" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="20" fill="#52606D" text-anchor="middle" font-weight="normal">300</text>
+  <line x1="1028.8" y1="530" x2="1028.8" y2="538" stroke="#52606D" stroke-width="2"/>
+  <text x="1028.8" y="564.0" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="20" fill="#52606D" text-anchor="middle" font-weight="normal">350</text>
+  <line x1="1160.0" y1="530" x2="1160.0" y2="538" stroke="#52606D" stroke-width="2"/>
+  <text x="1160.0" y="564.0" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="20" fill="#52606D" text-anchor="middle" font-weight="normal">400</text>
+  <line x1="110" y1="530" x2="1160" y2="530" stroke="#52606D" stroke-width="2"/>
+  <text x="635.0" y="602.0" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="22" fill="#1F2933" text-anchor="middle" font-weight="normal">czas pracy symulacji [s]</text>
+  <text x="28" y="285.0" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="22" fill="#1F2933" text-anchor="middle" transform="rotate(-90 28 285.0)">skumulowane błędy FPU</text>
+  <polyline points="110.0,530.0 188.8,521.8 267.5,501.4 346.2,444.2 425.0,391.2 503.8,334.0 582.5,272.8 661.2,207.4 740.0,142.1 818.8,101.2" fill="none" stroke="#C62828" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+  <circle cx="110.0" cy="530.0" r="6" fill="#C62828"/>
+  <circle cx="188.8" cy="521.8" r="6" fill="#C62828"/>
+  <circle cx="267.5" cy="501.4" r="6" fill="#C62828"/>
+  <circle cx="346.2" cy="444.2" r="6" fill="#C62828"/>
+  <circle cx="425.0" cy="391.2" r="6" fill="#C62828"/>
+  <circle cx="503.8" cy="334.0" r="6" fill="#C62828"/>
+  <circle cx="582.5" cy="272.8" r="6" fill="#C62828"/>
+  <circle cx="661.2" cy="207.4" r="6" fill="#C62828"/>
+  <circle cx="740.0" cy="142.1" r="6" fill="#C62828"/>
+  <circle cx="818.8" cy="101.2" r="6" fill="#C62828"/>
+  <polyline points="110.0,530.0 188.8,530.0 267.5,530.0 346.2,530.0 425.0,530.0 503.8,530.0 582.5,530.0 661.2,530.0 740.0,530.0 818.8,530.0 897.5,530.0 976.2,530.0 1055.0,530.0 1133.8,530.0" fill="none" stroke="#2E7D32" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+  <circle cx="110.0" cy="530.0" r="6" fill="#2E7D32"/>
+  <circle cx="188.8" cy="530.0" r="6" fill="#2E7D32"/>
+  <circle cx="267.5" cy="530.0" r="6" fill="#2E7D32"/>
+  <circle cx="346.2" cy="530.0" r="6" fill="#2E7D32"/>
+  <circle cx="425.0" cy="530.0" r="6" fill="#2E7D32"/>
+  <circle cx="503.8" cy="530.0" r="6" fill="#2E7D32"/>
+  <circle cx="582.5" cy="530.0" r="6" fill="#2E7D32"/>
+  <circle cx="661.2" cy="530.0" r="6" fill="#2E7D32"/>
+  <circle cx="740.0" cy="530.0" r="6" fill="#2E7D32"/>
+  <circle cx="818.8" cy="530.0" r="6" fill="#2E7D32"/>
+  <circle cx="897.5" cy="530.0" r="6" fill="#2E7D32"/>
+  <circle cx="976.2" cy="530.0" r="6" fill="#2E7D32"/>
+  <circle cx="1055.0" cy="530.0" r="6" fill="#2E7D32"/>
+  <circle cx="1133.8" cy="530.0" r="6" fill="#2E7D32"/>
+  <text x="808.8" y="81.2" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="23" fill="#C62828" text-anchor="end" font-weight="bold">0.3.0: akwizycja na float – 105 błędów</text>
+  <text x="1133.8" y="508.0" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="23" fill="#2E7D32" text-anchor="end" font-weight="bold">0.4.0: akwizycja na liczbach całkowitych – 0 / 34 658</text>
+</svg>

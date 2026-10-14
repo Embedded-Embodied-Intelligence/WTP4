@@ -10,6 +10,9 @@ a zdalnie – przez **MQTT** – do systemu nadrzędnego.
 > Ten plik jest „dziennikiem” projektu: aktualizujemy go po każdym etapie,
 > żeby instrukcje i ustalenia nie ginęły w rozmowach.
 
+> **Pierwszy raz w tym repozytorium?** Zacznij od [RUNBOOK.md](RUNBOOK.md) – prowadzi od zera:
+> uruchomienie, każda kontrolka i dioda, każda linia dziennika, przewodnik po kodzie.
+
 ## Spis treści
 1. [Stan projektu](#stan-projektu)
 2. [Struktura repozytorium](#struktura-repozytorium)
@@ -33,6 +36,7 @@ a zdalnie – przez **MQTT** – do systemu nadrzędnego.
 | 2 | Rdzeń oprogramowania: `main.cpp` (przerwania, czujniki, HMI, MQTT) | ✅ gotowy, sprawdzony w Wokwi i przez zewnętrznego klienta MQTT |
 | 3 | Logika predykcyjna `predictive.h` (zużycie, trendy, diagnoza wieloparametrowa, prognoza terminu kontroli), historia i dziennik zdarzeń, pamięć NVS, konsola, komentarze Doxygen | ✅ gotowy: 84 asercje testów jednostkowych, scenariusze sprawdzone w Wokwi, telemetria sprawdzona zewnętrznym klientem MQTT |
 | 4 | `DOKUMENTACJA.md`, `TESTY.md` (8 scenariuszy), `PREZENTACJA.md`; poprawka platformowa (akwizycja bez FPU) | ✅ gotowy: 8/8 scenariuszy zaliczonych w Wokwi na wersji 0.4.0 |
+| – | Materiały końcowe: slajdy (`prezentacja/`: PDF, PPTX, HTML), skrypt demonstracji i plan B (`demo/`), `RUNBOOK.md`, `WERYFIKACJA.md` | ✅ gotowe |
 
 Wymagania na ocenę 5.0 (z wytycznych przedmiotu): monitorowanie kilku parametrów, progi alarmowe,
 historia pomiarów i zdarzeń, **analiza kilku parametrów jednocześnie i wskazanie, kiedy maszyna
@@ -53,6 +57,10 @@ pełna dokumentacja, ≥ 8 scenariuszy testowych i ok. 10-minutowa prezentacja.
 | `TESTY.md` | 8 scenariuszy testowych z wynikami z Wokwi |
 | `PREZENTACJA.md` | scenariusz 10-minutowej prezentacji z demonstracją na żywo |
 | `docs/schemat_wokwi.png` | zrzut układu z Wokwi (schemat połączeń) |
+| `RUNBOOK.md` | nauka od zera: uruchomienie, każda kontrolka, dziennik, konsola, MQTT, algorytm, przewodnik po kodzie |
+| `WERYFIKACJA.md` | zgodność projektu z wytycznymi i założeniami początkowymi (macierz wymagań z dowodami) |
+| `prezentacja/` | slajdy gotowe do użycia (`slajdy.pdf`, `slajdy.pptx`, `slajdy.html`), źródło Marp `slajdy.md`, wykresy i diagramy, skrypt `zbuduj.sh` |
+| `demo/` | `rezyser_demo.js` – automatyczna 3-minutowa demonstracja w Wokwi z podpisami; `INSTRUKCJA_NAGRANIA.md` – nagranie planu B |
 | `README.md` | ten plik – stan projektu i instrukcje |
 | `Wytyczne Projektowe - ….md` | wytyczne prowadzącego (lokalnie, celowo **nie** w repozytorium – wpisane do `.gitignore`) |
 

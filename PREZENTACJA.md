@@ -3,6 +3,11 @@
 **Temat:** Inteligentny system utrzymania ruchu maszyn (ESP32, Wokwi, MQTT)
 **Forma:** slajdy + demonstracja na żywo w Wokwi (plan awaryjny na końcu)
 
+**Gotowe slajdy:** `prezentacja/slajdy.pdf` (do wyświetlenia), `prezentacja/slajdy.pptx` (PowerPoint/Keynote,
+z notatkami prelegenta), `prezentacja/slajdy.html` (przeglądarka; klawisz `P` – widok prelegenta z notatkami).
+Źródło: `prezentacja/slajdy.md` (Marp); przebudowa po zmianach: `./prezentacja/zbuduj.sh`.
+Na slajdzie tytułowym wpisz swoje imię i nazwisko (w `slajdy.md`, potem przebuduj).
+
 Zawartość zgodna z wytycznymi: cel i założenia → rozwiązania technologiczne → demonstracja →
 trudności i ich rozwiązania → dalszy rozwój.
 
@@ -14,10 +19,10 @@ trudności i ich rozwiązania → dalszy rozwój.
 | 0:45–1:30 | Założenia i realizacja wymagań | 3 |
 | 1:30–3:00 | Architektura sprzętu i oprogramowania | 4–5 |
 | 3:00–4:30 | Algorytm predykcyjny | 6–7 |
-| 4:30–7:30 | **Demonstracja na żywo** | – |
-| 7:30–8:45 | Trudności i ich rozwiązania | 8 |
-| 8:45–9:30 | Testy i wyniki | 9 |
-| 9:30–10:00 | Dalszy rozwój, podsumowanie | 10 |
+| 4:30–7:30 | **Demonstracja na żywo** | 8 |
+| 7:30–8:45 | Trudności i ich rozwiązania | 9 |
+| 8:45–9:30 | Testy i wyniki | 10–11 |
+| 9:30–10:00 | Dalszy rozwój, podsumowanie | 12–13 |
 
 ## Przygotowanie (przed zajęciami)
 
@@ -29,7 +34,8 @@ trudności i ich rozwiązania → dalszy rozwój.
       subskrypcja `wtp4/pdm/maszyna-01/#` – instrukcja w README.
 - [ ] Konsola przeglądarki z wklejonym skryptem rampy temperatury (README, sekcja „Jak testować”) –
       gotowa do uruchomienia jednym Enterem.
-- [ ] Plan awaryjny: nagranie ekranu z próby (np. QuickTime) i zrzuty z [TESTY.md](TESTY.md).
+- [ ] Plan awaryjny: nagranie demonstracji według [demo/INSTRUKCJA_NAGRANIA.md](demo/INSTRUKCJA_NAGRANIA.md)
+      (skrypt reżysera prowadzi pokaz sam) i zrzuty z [TESTY.md](TESTY.md).
 
 ---
 
@@ -78,24 +84,28 @@ temperaturze raczej niewyważenie. Za chwilę to pokażę.
 
 ## Demonstracja na żywo (3 min)
 
+Ten sam przebieg wykonuje automatycznie **skrypt reżysera** `demo/rezyser_demo.js` (podpisy na
+ekranie, oś czasu sprawdzona symulacją silnika) – możesz go uruchomić na żywo albo pokazać nagranie
+(instrukcja: [demo/INSTRUKCJA_NAGRANIA.md](demo/INSTRUKCJA_NAGRANIA.md)).
+
 | Krok | Czas | Akcja | Co pokazać i powiedzieć |
 |---|---|---|---|
 | 1 | 0:00 | przełącznik RUN → praca | `RUN_START`, zielona lampka, OLED: stan OK, „kontrola za ~200 h (zużycie)” |
 | 2 | 0:20 | MPU6050: *Acceleration X* = +0,10 g | v = 3,17 mm/s, strefa C → `VIB -> OSTRZEZENIE`, żółta lampka; `stan` → przyczyna **niewywazenie/luz** |
-| 3 | 0:50 | skrypt rampy temperatury (Enter w konsoli przeglądarki) | prognoza zmienia się na `(trend temp.)`; po kilkunastu sekundach przyczyna **lozysko/smarowanie**, choć temperatura < 50 °C – korelacja parametrów |
-| 4 | 1:40 | drugi monitor/karta: MQTTX | zdarzenia `LEVEL` i telemetria JSON (pola `state`, `cause`, `insp_h`) – dane trafiają do systemu nadrzędnego |
-| 5 | 2:10 | DHT22: temperatura 71 °C | `TEMP -> ALARM`, `STAN -> KONTROLA`, czerwona lampka miga, buzzer „pip-pip” |
-| 6 | 2:30 | przycisk **ACK** (lub `ack`) | czerwona świeci ciągle, buzzer milknie – alarm potwierdzony, ale nadal aktywny (ISA-18.2) |
-| 7 | 2:45 | temperatura 40 °C, X = 0, **przytrzymanie SERWIS 3 s** | `SERVICE_DONE`, od razu OK i „kontrola za ~200 h” |
+| 3 | 0:50 | temperatura rośnie 40 → 56 °C (1 °C co 2,5 s) | prognoza maleje, zużycie przyspiesza ×3–4; ok. 1:30 przyczyna zmienia się na **lozysko/smarowanie** – korelacja parametrów |
+| 4 | ~1:35 | (samo) | `STAN -> KONTROLA`, czerwona miga, sygnał – **choć T < 60 °C i v < 7,1 mm/s**: system wymaga kontroli przed przekroczeniem progów; `stan` pokazuje „kontrola TERAZ (wg: zuzycie)” |
+| 5 | 2:00 | DHT22: temperatura 71 °C | `TEMP -> ALARM` – klasyczny alarm progowy na tle predykcji |
+| 6 | 2:20 | przycisk **ACK**, potem `zdarzenia 8` | `ACK (2.00)`: czerwona świeci ciągle, buzzer milknie; dziennik zdarzeń = to, co poszło przez MQTT (opcjonalnie pokaż MQTTX) |
+| 7 | 2:38 | temperatura 40 °C, X = 0, **przytrzymanie SERWIS 3 s** | `SERVICE_DONE`, od razu OK i „kontrola za ~200 h” |
 
 **Jeśli coś pójdzie nie tak:**
-- MQTT się nie łączy (sieć sali) → system działa lokalnie, pokazać zdarzenia w monitorze portu i nagranie.
+- MQTT się nie łączy (sieć sali) → system działa lokalnie, zdarzenia widać w monitorze portu.
 - Symulacja „stoi” → sprawdzić, czy karta jest widoczna; w ostateczności nagranie.
-- Brak czasu → pominąć krok 4 (MQTT) i 5 (alarm), zostawić predykcję (krok 3) – najważniejszą dla 5.0.
+- Brak czasu → pominąć krok 5 (alarm progowy), zostawić kroki 3–4 – predykcję, najważniejszą dla 5.0.
 
 ---
 
-### Slajd 8 – Trudności i ich rozwiązania
+### Slajd 9 – Trudności i ich rozwiązania
 **Na slajdzie (4 przykłady):**
 1. **Fałszywy alarm „kontrola za 1 h” przy zatrzymanej maszynie** – niemożliwy według logiki.
    Hipoteza → test izolowany → przyczyna: Wokwi nie zachowuje rejestrów FPU przy przełączaniu zadań
@@ -108,14 +118,14 @@ temperaturze raczej niewyważenie. Za chwilę to pokażę.
 **Powiedz:** pierwszy przykład to najciekawsza część pracy inżynierskiej – od objawu, przez wykluczanie
 hipotez, do pomiaru, który potwierdził skuteczność poprawki.
 
-### Slajd 9 – Testy i wyniki
+### Slajdy 10–11 – Wynik kluczowy, testy i wyniki
 **Na slajdzie:** 8 scenariuszy (T1–T8) – wszystkie zaliczone ([TESTY.md](TESTY.md)); 84 asercje testów
 jednostkowych; najważniejszy wynik: **PLAN przy 52 °C – 8 °C przed progiem ostrzeżenia** (T4);
 zasoby: 198 KB wolnej sterty, 1 pominięty takt na 38 800 próbek.
 **Powiedz:** testy obejmują przypadki standardowe, brzegowe (restart, skok w środku okna) i awaryjne
 (usterka czujnika).
 
-### Slajd 10 – Dalszy rozwój i podsumowanie
+### Slajdy 12–13 – Dalszy rozwój i podsumowanie
 **Na slajdzie:** FFT i analiza obwiedni (częstotliwości łożyskowe); prąd silnika; uczenie linii bazowej
 i wykrywanie anomalii; panel Grafana, integracja z CMMS (automatyczne zlecenie przeglądu); TLS i OTA.
 **Powiedz (zamknięcie):** „System mierzy, łączy parametry, przewiduje termin kontroli i mówi, co jest

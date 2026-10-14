@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 620" width="1200" height="620">
+  <rect width="1200" height="620" fill="white"/>
+  <line x1="110" y1="530.0" x2="1160" y2="530.0" stroke="#D9E2EC" stroke-width="1.5"/>
+  <text x="96.0" y="537.0" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="20" fill="#52606D" text-anchor="end" font-weight="normal">0</text>
+  <line x1="110" y1="407.5" x2="1160" y2="407.5" stroke="#D9E2EC" stroke-width="1.5"/>
+  <text x="96.0" y="414.5" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="20" fill="#52606D" text-anchor="end" font-weight="normal">20</text>
+  <line x1="110" y1="285.0" x2="1160" y2="285.0" stroke="#D9E2EC" stroke-width="1.5"/>
+  <text x="96.0" y="292.0" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="20" fill="#52606D" text-anchor="end" font-weight="normal">40</text>
+  <line x1="110" y1="162.5" x2="1160" y2="162.5" stroke="#D9E2EC" stroke-width="1.5"/>
+  <text x="96.0" y="169.5" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="20" fill="#52606D" text-anchor="end" font-weight="normal">60</text>
+  <line x1="110" y1="40.0" x2="1160" y2="40.0" stroke="#D9E2EC" stroke-width="1.5"/>
+  <text x="96.0" y="47.0" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="20" fill="#52606D" text-anchor="end" font-weight="normal">80</text>
+  <line x1="110.0" y1="530" x2="110.0" y2="538" stroke="#52606D" stroke-width="2"/>
+  <text x="110.0" y="564.0" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="20" fill="#52606D" text-anchor="middle" font-weight="normal">44</text>
+  <line x1="233.5" y1="530" x2="233.5" y2="538" stroke="#52606D" stroke-width="2"/>
+  <text x="233.5" y="564.0" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="20" fill="#52606D" text-anchor="middle" font-weight="normal">46</text>
+  <line x1="357.1" y1="530" x2="357.1" y2="538" stroke="#52606D" stroke-width="2"/>
+  <text x="357.1" y="564.0" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="20" fill="#52606D" text-anchor="middle" font-weight="normal">48</text>
+  <line x1="480.6" y1="530" x2="480.6" y2="538" stroke="#52606D" stroke-width="2"/>
+  <text x="480.6" y="564.0" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="20" fill="#52606D" text-anchor="middle" font-weight="normal">50</text>
+  <line x1="604.1" y1="530" x2="604.1" y2="538" stroke="#52606D" stroke-width="2"/>
+  <text x="604.1" y="564.0" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="20" fill="#52606D" text-anchor="middle" font-weight="normal">52</text>
+  <line x1="727.6" y1="530" x2="727.6" y2="538" stroke="#52606D" stroke-width="2"/>
+  <text x="727.6" y="564.0" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="20" fill="#52606D" text-anchor="middle" font-weight="normal">54</text>
+  <line x1="851.2" y1="530" x2="851.2" y2="538" stroke="#52606D" stroke-width="2"/>
+  <text x="851.2" y="564.0" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="20" fill="#52606D" text-anchor="middle" font-weight="normal">56</text>
+  <line x1="974.7" y1="530" x2="974.7" y2="538" stroke="#52606D" stroke-width="2"/>
+  <text x="974.7" y="564.0" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="20" fill="#52606D" text-anchor="middle" font-weight="normal">58</text>
+  <line x1="1098.2" y1="530" x2="1098.2" y2="538" stroke="#52606D" stroke-width="2"/>
+  <text x="1098.2" y="564.0" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="20" fill="#52606D" text-anchor="middle" font-weight="normal">60</text>
+  <line x1="110" y1="530" x2="1160" y2="530" stroke="#52606D" stroke-width="2"/>
+  <text x="635.0" y="602.0" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="22" fill="#1F2933" text-anchor="middle" font-weight="normal">temperatura obudowy [°C] (rośnie o 1 °C na godzinę pracy)</text>
+  <text x="28" y="285.0" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="22" fill="#1F2933" text-anchor="middle" transform="rotate(-90 28 285.0)">prognoza kontroli [h]</text>
+  <rect x="604.1" y="40" width="494.1" height="490" fill="#087E8B" opacity="0.08"/>
+  <text x="851.2" y="74.0" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="24" fill="#087E8B" text-anchor="middle" font-weight="bold">8 °C wyprzedzenia</text>
+  <line x1="110" y1="236.0" x2="1160" y2="236.0" stroke="#E0A100" stroke-width="3" stroke-dasharray="12 8"/>
+  <text x="1086.2" y="224.0" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="21" fill="#E0A100" text-anchor="end" font-weight="bold">próg PLAN: prognoza ≤ 48 h</text>
+  <line x1="1098.2" y1="40" x2="1098.2" y2="530" stroke="#C62828" stroke-width="3" stroke-dasharray="12 8"/>
+  <text x="1090.2" y="514.0" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="21" fill="#C62828" text-anchor="end" font-weight="bold">próg ostrzeżenia 60 °C</text>
+  <polyline points="171.8,70.6 295.3,113.5 357.1,150.2 418.8,174.8 480.6,205.4 542.4,223.8 665.9,260.5 789.4,278.9 851.2,297.2 912.9,315.6 974.7,334.0" fill="none" stroke="#087E8B" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+  <circle cx="171.8" cy="70.6" r="6" fill="#087E8B"/>
+  <circle cx="295.3" cy="113.5" r="6" fill="#087E8B"/>
+  <circle cx="357.1" cy="150.2" r="6" fill="#087E8B"/>
+  <circle cx="418.8" cy="174.8" r="6" fill="#087E8B"/>
+  <circle cx="480.6" cy="205.4" r="6" fill="#087E8B"/>
+  <circle cx="542.4" cy="223.8" r="6" fill="#087E8B"/>
+  <circle cx="665.9" cy="260.5" r="6" fill="#087E8B"/>
+  <circle cx="789.4" cy="278.9" r="6" fill="#087E8B"/>
+  <circle cx="851.2" cy="297.2" r="6" fill="#087E8B"/>
+  <circle cx="912.9" cy="315.6" r="6" fill="#087E8B"/>
+  <circle cx="974.7" cy="334.0" r="6" fill="#087E8B"/>
+  <circle cx="604.1" cy="242.1" r="13" fill="none" stroke="#E0A100" stroke-width="5"/>
+  <text x="586.1" y="288.1" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="22" fill="#1F2933" text-anchor="end" font-weight="bold">STAN → PLAN (52 °C, 47 h)</text>
+  <text x="183.8" y="52.6" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="21" fill="#087E8B" text-anchor="start" font-weight="normal">prognoza wg trendu temperatury</text>
+</svg>
