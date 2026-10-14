@@ -32,7 +32,7 @@ a zdalnie – przez **MQTT** – do systemu nadrzędnego.
 | 1 | Architektura sprzętowa: `diagram.json`, `libraries.txt` | ✅ gotowy, sprawdzony w Wokwi |
 | 2 | Rdzeń oprogramowania: `main.cpp` (przerwania, czujniki, HMI, MQTT) | ✅ gotowy, sprawdzony w Wokwi i przez zewnętrznego klienta MQTT |
 | 3 | Logika predykcyjna `predictive.h` (zużycie, trendy, diagnoza wieloparametrowa, prognoza terminu kontroli), historia i dziennik zdarzeń, pamięć NVS, konsola, komentarze Doxygen | ✅ gotowy: 84 asercje testów jednostkowych, scenariusze sprawdzone w Wokwi, telemetria sprawdzona zewnętrznym klientem MQTT |
-| 4 | `DOKUMENTACJA.md`, `TESTY.md` (8 scenariuszy), `PREZENTACJA.md` | ⏳ |
+| 4 | `DOKUMENTACJA.md`, `TESTY.md` (8 scenariuszy), `PREZENTACJA.md`; poprawka platformowa (akwizycja bez FPU) | ✅ gotowy: 8/8 scenariuszy zaliczonych w Wokwi na wersji 0.4.0 |
 
 Wymagania na ocenę 5.0 (z wytycznych przedmiotu): monitorowanie kilku parametrów, progi alarmowe,
 historia pomiarów i zdarzeń, **analiza kilku parametrów jednocześnie i wskazanie, kiedy maszyna
@@ -49,6 +49,10 @@ pełna dokumentacja, ≥ 8 scenariuszy testowych i ok. 10-minutowa prezentacja.
 | `main.cpp` | aplikacja (C++, FreeRTOS): akwizycja, przerwania, HMI, MQTT, historia i zdarzenia, NVS, konsola |
 | `predictive.h` | logika predykcyjna – czyste C++17 bez zależności od Arduino (dzięki temu testowana na komputerze) |
 | `test/test_predictive.cpp` | testy jednostkowe logiki predykcyjnej |
+| `DOKUMENTACJA.md` | dokumentacja techniczna: opis, schematy, diagramy przepływu danych i algorytmów, testy, wyzwania, rozwój |
+| `TESTY.md` | 8 scenariuszy testowych z wynikami z Wokwi |
+| `PREZENTACJA.md` | scenariusz 10-minutowej prezentacji z demonstracją na żywo |
+| `docs/schemat_wokwi.png` | zrzut układu z Wokwi (schemat połączeń) |
 | `README.md` | ten plik – stan projektu i instrukcje |
 | `Wytyczne Projektowe - ….md` | wytyczne prowadzącego (lokalnie, celowo **nie** w repozytorium – wpisane do `.gitignore`) |
 
