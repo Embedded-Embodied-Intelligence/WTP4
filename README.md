@@ -243,8 +243,9 @@ Suwakiem trudno przesuwać temperaturę równo o 1 °C. Do powtarzalnej demonstr
   (`zuzycie`, `trend temp.`, `trend drgan`); `TERAZ` = kontrola wymagana już teraz,
 - `OK`/`PLAN`/`KONTROLA` – status utrzymania; `[ALARM - wymagane ACK]` – jest alarm niepotwierdzony,
 - `mth` – motogodziny (czas pracy maszyny), `starty` – liczba uruchomień,
-- co 30 s pojawia się linia `[DIAG]` – wolna pamięć, zapas stosu zadań, liczba próbek,
-  pominięte takty próbkowania, liczba zboczy z przycisków (widać drgania styków).
+- co 30 s pojawiają się dwie linie `[DIAG]` – wolna pamięć, zapas stosu zadań, liczba próbek,
+  pominięte takty próbkowania, liczba zboczy z przycisków (widać drgania styków), stan historii
+  i MQTT oraz wynik monitora integralności FPU (`FPU: błędy 0 / kontrole N` – zob. niżej).
 
 ## Polecenia konsoli
 
@@ -333,11 +334,17 @@ NORMA/OSTRZEZENIE/ALARM, a dla MAINT: OK/PLAN/KONTROLA).
   zamienia je na jedno zdarzenie (widać to w linii `[DIAG]`).
 - Po zmianie kodu monitor portu pokazuje **stary log**, dopóki nie skończy się kompilacja
   (na darmowym koncie kompilacja czeka w kolejce, zwykle 40–60 s).
-- **Jednorazowy skok prognozy:** w jednym z przebiegów (maszyna zatrzymana, puste okno trendu)
-  pojedynczy krok analizy dał prognozę „1 h (trend drgan)”, której logika nie może wyliczyć z pustego
-  okna. Wystąpiło raz na ok. 420 kroków analizy; przyczyny nie ustalono (wykluczone: dostęp do danych
-  z innych zadań, obliczenia zmiennoprzecinkowe w przerwaniach). Zabezpieczenie: podwyższenie statusu wymaga
-  potwierdzenia w 2 kolejnych krokach – taki pojedynczy skok nie wywołuje już alarmu.
+- **Rejestry FPU nie są zachowywane przy przełączaniu zadań na tym samym rdzeniu.** Gdy zadanie
+  o wyższym priorytecie, które liczy na liczbach zmiennoprzecinkowych, wywłaszczy inne takie zadanie
+  na tym samym rdzeniu, przerwane obliczenie daje błędny wynik. Test wzorcowy: 11 475 z 11 475 obliczeń
+  błędnych; gdy zadanie przerywające liczy na liczbach całkowitych albo działa na drugim rdzeniu –
+  0 błędów. To była przyczyna jednorazowego fałszywego alarmu z Etapu 3 („kontrola za 1 h (trend
+  drgan)” przy zatrzymanej maszynie). Rozwiązanie: zadanie akwizycji liczy wyłącznie na liczbach
+  całkowitych, a odczyt DHT22 i obliczenia zmiennoprzecinkowe wykonuje sterownik – na rdzeniu 1
+  z FPU korzysta tylko jedno zadanie. Monitor integralności FPU (linia `[DIAG]`): przed zmianą
+  105 błędów w 270 s, po zmianie 0 błędów w 34 658 kontrolach (390 s).
+- Pierwszy odczyt DHT22 po **restarcie programowym** (`restart`) bywa nieudany – przez ok. 2,5 s
+  widać `T=---`; usterka nie jest zgłaszana, bo wymaga 3 kolejnych błędów.
 
 ## Dziennik decyzji projektowych
 
@@ -347,6 +354,8 @@ NORMA/OSTRZEZENIE/ALARM, a dla MAINT: OK/PLAN/KONTROLA).
 | Pin INT MPU6050 niepodłączony | Wokwi go nie symuluje – takt próbkowania daje przerwanie timera sprzętowego (100 Hz) |
 | Własny sterownik MPU6050 zamiast biblioteki | jeden odczyt 14 B, pełna kontrola konfiguracji (±4 g, filtr 44 Hz), mniej pamięci |
 | FreeRTOS: akwizycja (rdzeń 1), sterownik (`loop`), komunikacja (rdzeń 0) | blokujące operacje sieciowe nie wpływają na pomiary |
+| Zadanie akwizycji bez FPU (arytmetyka stałoprzecinkowa Q8, sumy w `uint64`); DHT22 i obliczenia zmiennoprzecinkowe w sterowniku | Wokwi nie zachowuje rejestrów FPU przy wywłaszczeniu (zmierzone) – na każdym rdzeniu jeden użytkownik FPU; na sprzęcie mniej przełączeń kontekstu FPU |
+| Monitor integralności FPU w `[DIAG]` | samodiagnostyka platformy: wykrył problem przed poprawką (105 błędów / 270 s), po poprawce 0 |
 | Brak `delay()` i alokacji pamięci w pętli pracy | wymaganie projektu; bufory statyczne, brak `String` |
 | SERWIS wymaga przytrzymania 3 s; brak zdalnego „serwisu” przez MQTT | ochrona przed przypadkowym/zdalnym wyzerowaniem licznika |
 | Status `online` ponawiany co 30 s | zachowany komunikat `offline` (LWT) przerwanej wcześniej sesji potrafi przyjść po `online` nowej |

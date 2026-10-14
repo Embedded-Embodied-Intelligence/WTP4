@@ -17,10 +17,10 @@
  *
  * Architektura (FreeRTOS, przepływ danych w jedną stronę, bez blokującego delay()):
  * @verbatim
- *  Timer ISR (100 Hz) --notify--> [Akwizycja: rdzeń 1, prio 3] --skrzynka--+
- *                                                                          v
- *  GPIO ISR (ACK/SERWIS/RUN) --notify--> [Sterownik loop(): rdzeń 1, prio 1]
- *                                           | analiza (predictive.h), historia, NVS,
+ *  Timer ISR (100 Hz) --notify--> [Akwizycja: rdzeń 1, prio 3, tylko liczby całkowite] --skrzynka--+
+ *                                                                                                  v
+ *  GPIO ISR (ACK/SERWIS/RUN) --notify--> [Sterownik loop(): rdzeń 1, prio 1] <-- DHT22 (co 2,5 s)
+ *                                           | cechy drgań, analiza (predictive.h), historia, NVS,
  *                                           | OLED / LED / buzzer / konsola
  *                                           | skrzynka + kolejka zdarzeń
  *                                           v
@@ -31,7 +31,8 @@
  * = 1 h pracy, dzięki czemu cykl zużycia i prognozy widać w ciągu kilku minut.
  *
  * Zasady: brak alokacji pamięci w pętli pracy (bufory statyczne, brak klasy String),
- * procedury ISR ograniczone do zapisu znacznika czasu i powiadomienia zadania.
+ * procedury ISR ograniczone do zapisu znacznika czasu i powiadomienia zadania, na każdym
+ * rdzeniu z FPU korzysta tylko jedno zadanie (zob. FpuIntegrityMonitor).
  */
 
 #include <Arduino.h>
@@ -58,7 +59,7 @@
 // ============================================================================
 namespace cfg {
 
-constexpr char kFirmware[] = "WTP4-PdM 0.3.0 (Etap 3)";
+constexpr char kFirmware[] = "WTP4-PdM 0.4.0 (Etap 4)";
 
 // --- Piny (zgodne z diagram.json) ---
 constexpr uint8_t kPinI2c0Sda = 21;     ///< I2C0 (Wire): MPU6050
@@ -162,7 +163,31 @@ struct ClimateReading {
   uint8_t errorStreak = 0;  ///< liczba kolejnych nieudanych odczytów
 };
 
-/** @brief Migawka danych z zadania akwizycji (przekazywana przez skrzynkę). */
+/** @brief Sumy jednego okna drgań (1 s) w arytmetyce stałoprzecinkowej – wynik zadania akwizycji. */
+struct VibrationWindow {
+  uint64_t sumSq = 0;   ///< suma kwadratów modułu składowej dynamicznej [(LSB/256)²]
+  uint64_t peakSq = 0;  ///< maksimum kwadratu modułu składowej dynamicznej [(LSB/256)²]
+  uint16_t count = 0;   ///< liczba próbek w oknie
+};
+
+/**
+ * @brief Migawka z zadania akwizycji (skrzynka akwizycja -> sterownik) – wyłącznie liczby całkowite.
+ * @details Zadanie akwizycji nie wykonuje obliczeń zmiennoprzecinkowych (zob. FpuIntegrityMonitor);
+ *          na jednostki fizyczne przelicza je sterownik.
+ */
+struct AcqSnapshot {
+  uint32_t seq = 0;                 ///< numer kolejny migawki
+  uint32_t timestampMs = 0;         ///< czas utworzenia [ms od startu]
+  uint32_t windows = 0;             ///< liczba zamkniętych okien drgań (wyzwala krok analizy)
+  VibrationWindow window;           ///< sumy ostatniego zamkniętego okna
+  int16_t accelRaw[3] = {0, 0, 0};  ///< ostatnia próbka przyspieszenia [LSB]
+  int16_t mpuTempRaw = 0;           ///< ostatni surowy odczyt temperatury MPU6050
+  bool mpuOk = false;               ///< czy MPU6050 odpowiada
+  uint32_t samples = 0;             ///< liczba próbek od startu
+  uint32_t overruns = 0;            ///< pominięte takty timera (przeciążenie)
+};
+
+/** @brief Dane czujników w jednostkach fizycznych (wyznacza sterownik z AcqSnapshot i odczytu DHT22). */
 struct SensorSnapshot {
   uint32_t seq = 0;          ///< numer kolejny migawki
   uint32_t timestampMs = 0;  ///< czas utworzenia [ms od startu]
@@ -263,7 +288,7 @@ const char* toString(EventType type) {
 
 /** @brief Obiekty FreeRTOS współdzielone przez moduły. */
 namespace rtos {
-QueueHandle_t sensorMailbox = nullptr;  ///< akwizycja -> sterownik (1 element, nadpisywany)
+QueueHandle_t sensorMailbox = nullptr;  ///< akwizycja -> sterownik (AcqSnapshot, 1 element, nadpisywany)
 QueueHandle_t systemMailbox = nullptr;  ///< sterownik -> komunikacja (1 element, nadpisywany)
 QueueHandle_t eventQueue = nullptr;     ///< sterownik -> komunikacja (FIFO zdarzeń)
 QueueHandle_t commandQueue = nullptr;   ///< komunikacja -> sterownik (polecenia zdalne)
@@ -341,6 +366,41 @@ const char* formatForecast(char* out, size_t size, float hours) {
   }
   return out;
 }
+
+/**
+ * @brief Monitor integralności rejestrów FPU (samodiagnostyka platformy).
+ * @details W każdym takcie sterownika wykonuje krótkie obliczenie o znanym, dokładnym wyniku,
+ *          trzymając sumy cząstkowe w rejestrach FPU. Błędny wynik oznacza, że inne zadanie na tym
+ *          samym rdzeniu nadpisało rejestry FPU podczas wywłaszczenia. Tak zachowuje się symulator
+ *          Wokwi (zmierzone: każde obliczenie przerwane przez zadanie używające FPU było błędne),
+ *          dlatego w tym programie z FPU korzysta na rdzeniu 1 wyłącznie sterownik – zadanie
+ *          akwizycji liczy w arytmetyce stałoprzecinkowej.
+ */
+class FpuIntegrityMonitor {
+ public:
+  /** @brief Jedna kontrola (ok. 20 µs). */
+  void check() {
+    const float v = seed_;
+    float s0 = 0.0f, s1 = 0.0f, s2 = 0.0f, s3 = 0.0f;
+    for (uint32_t i = 0; i < kIterations; ++i) {
+      s0 += v;
+      s1 += v * 2.0f;
+      s2 += v * 4.0f;
+      s3 += v * 8.0f;
+    }
+    ++checks_;
+    if (s0 != kExpected || s1 != 2.0f * kExpected || s2 != 4.0f * kExpected || s3 != 8.0f * kExpected) ++errors_;
+  }
+  uint32_t checks() const { return checks_; }
+  uint32_t errors() const { return errors_; }
+
+ private:
+  static constexpr uint32_t kIterations = 1024;
+  static constexpr float kExpected = 0.25f * kIterations;  ///< 256 – wynik dokładny w arytmetyce float
+  volatile float seed_ = 0.25f;                              ///< volatile: pętla nie zostanie zwinięta do stałej
+  uint32_t checks_ = 0;
+  uint32_t errors_ = 0;
+};
 
 // ============================================================================
 // 4. WARSTWA PRZERWAŃ
@@ -476,12 +536,18 @@ void IRAM_ATTR SampleTimer::onAlarm() {
  */
 class Mpu6050 {
  public:
-  /** @brief Próbka pomiarowa w jednostkach fizycznych. */
-  struct Sample {
-    float accG[3];     ///< przyspieszenie [g]
-    float gyroDps[3];  ///< prędkość kątowa [°/s]
-    float tempC;       ///< temperatura struktury [°C]
+  /** @brief Surowa próbka [LSB] – na jednostki fizyczne przelicza sterownik, nie zadanie akwizycji. */
+  struct RawSample {
+    int16_t acc[3];  ///< przyspieszenie [LSB]
+    int16_t temp;    ///< temperatura struktury [LSB]
   };
+
+  static constexpr float kAccLsbPerG = 8192.0f;  ///< czułość akcelerometru dla zakresu ±4 g
+
+  /** @brief Przyspieszenie [g] z wartości surowej. */
+  static float accelG(int16_t raw) { return raw / kAccLsbPerG; }
+  /** @brief Temperatura struktury [°C] z wartości surowej (wzór z noty katalogowej). */
+  static float tempC(int16_t raw) { return raw / 340.0f + 36.53f; }
 
   Mpu6050(TwoWire& bus, uint8_t address) : bus_(bus), addr_(address) {}
 
@@ -496,17 +562,17 @@ class Mpu6050 {
            && writeReg(kRegAccelConfig, 0x08);  // zakres ±4 g
   }
 
-  /** @brief Odczytuje komplet pomiarów jednym transferem I2C. */
-  bool read(Sample& out) {
+  /**
+   * @brief Odczytuje pomiary jednym transferem I2C (14 B; żyroskop nie jest wykorzystywany w analizie).
+   * @note Wyłącznie arytmetyka całkowita – funkcja działa w zadaniu akwizycji.
+   */
+  bool read(RawSample& out) {
     uint8_t raw[14];
     if (!readRegs(kRegAccelXoutH, raw, sizeof(raw))) return false;
     // Uwaga: nazwa "word" jest w Arduino makrem (makeWord) – stąd be16 (big-endian, 16 bit).
     auto be16 = [&raw](uint8_t i) { return static_cast<int16_t>((raw[i] << 8) | raw[i + 1]); };
-    for (uint8_t axis = 0; axis < 3; ++axis) {
-      out.accG[axis] = be16(axis * 2) / kAccLsbPerG;
-      out.gyroDps[axis] = be16(8 + axis * 2) / kGyroLsbPerDps;
-    }
-    out.tempC = be16(6) / 340.0f + 36.53f;
+    for (uint8_t axis = 0; axis < 3; ++axis) out.acc[axis] = be16(axis * 2);
+    out.temp = be16(6);
     return true;
   }
 
@@ -518,8 +584,6 @@ class Mpu6050 {
   static constexpr uint8_t kRegAccelXoutH = 0x3B;
   static constexpr uint8_t kRegPwrMgmt1 = 0x6B;
   static constexpr uint8_t kRegWhoAmI = 0x75;
-  static constexpr float kAccLsbPerG = 8192.0f;   ///< czułość dla ±4 g
-  static constexpr float kGyroLsbPerDps = 65.5f;  ///< czułość dla ±500 °/s
 
   bool writeReg(uint8_t reg, uint8_t value) {
     bus_.beginTransmission(addr_);
@@ -545,7 +609,8 @@ class Mpu6050 {
  * @brief Obsługa DHT22 (temperatura, wilgotność) z wykrywaniem usterki czujnika.
  * @note Biblioteka DHTesp generuje impuls startowy przez delay(2) (w FreeRTOS to vTaskDelay –
  *       procesor jest oddawany innym zadaniom) i odczytuje bity w sekcji krytycznej (~4 ms).
- *       Odczyt co 2,5 s w zadaniu akwizycji nie powoduje utraty próbek (okres 10 ms).
+ *       Odczyt co 2,5 s wykonuje sterownik (biblioteka liczy na liczbach float, a FPU na rdzeniu 1
+ *       ma tylko jednego użytkownika); przerwanie timera opóźnione o ≤ 4 ms nie gubi próbki (okres 10 ms).
  */
 class ClimateSensor {
  public:
@@ -580,60 +645,72 @@ class ClimateSensor {
 // ============================================================================
 
 /**
- * @brief Wyznacza cechy drgań w oknach 1 s metodą akumulacyjną (O(1) pamięci).
- * @details Składowa dynamiczna = przyspieszenie minus wektor odniesienia (grawitacja).
- *          Wektor odniesienia adaptuje się filtrem dolnoprzepustowym 1. rzędu tylko na
- *          postoju maszyny i jest zamrażany w czasie pracy. Prędkość drgań szacowana jako
- *          v_RMS = a_RMS / (2*pi*f_dom) – założenie dominującej składowej 1x obroty.
+ * @brief Akumulator okna drgań (1 s) w arytmetyce stałoprzecinkowej – działa w zadaniu akwizycji.
+ * @details Składowa dynamiczna = przyspieszenie minus wektor odniesienia (grawitacja). Wektor
+ *          odniesienia (format Q8 = 1/256 LSB) adaptuje się filtrem dolnoprzepustowym 1. rzędu
+ *          (stała czasowa cfg::kGravityTauS) tylko na postoju maszyny i jest zamrażany w czasie
+ *          pracy. Okno zbiera sumę i maksimum kwadratu modułu składowej dynamicznej (uint64, bez
+ *          ryzyka przepełnienia); pierwiastki i jednostki fizyczne liczy computeVibrationFeatures()
+ *          w sterowniku – zadanie akwizycji nie używa FPU (zob. FpuIntegrityMonitor).
  */
-class VibrationAnalyzer {
+class VibrationAccumulator {
  public:
+  static constexpr int32_t kQ = 256;  ///< skala formatu Q8
+
   /**
-   * @param acc            próbka przyspieszenia [g]
+   * @param raw            próbka przyspieszenia [LSB]
    * @param machineRunning czy maszyna pracuje (zamrożenie wektora odniesienia)
-   * @return true, gdy zamknięto okno i dostępne są nowe cechy
+   * @return true, gdy zamknięto okno (sumy dostępne w lastWindow())
    */
-  bool addSample(const float acc[3], bool machineRunning) {
+  bool addSample(const int16_t raw[3], bool machineRunning) {
     if (!refInit_) {
-      for (uint8_t i = 0; i < 3; ++i) ref_[i] = acc[i];
+      for (uint8_t i = 0; i < 3; ++i) ref_[i] = static_cast<int32_t>(raw[i]) * kQ;
       refInit_ = true;
     }
-    if (!machineRunning) {
-      for (uint8_t i = 0; i < 3; ++i) ref_[i] += kAlpha * (acc[i] - ref_[i]);
-    }
-    float d2 = 0.0f;
+    uint64_t d2 = 0;
     for (uint8_t i = 0; i < 3; ++i) {
-      const float d = acc[i] - ref_[i];
-      d2 += d * d;
+      const int32_t x = static_cast<int32_t>(raw[i]) * kQ;
+      if (!machineRunning) ref_[i] += (x - ref_[i]) / kTauSamples;  // filtr 1. rzędu: alfa = 1/200
+      const int64_t d = static_cast<int64_t>(x) - ref_[i];
+      d2 += static_cast<uint64_t>(d * d);
     }
-    sumSq_ += d2;
-    if (d2 > peakSq_) peakSq_ = d2;  // porównanie kwadratów – pierwiastek raz na okno
-    if (++count_ < cfg::kWindowSamples) return false;
-
-    features_.aRmsG = sqrtf(static_cast<float>(sumSq_ / count_));
-    features_.aPeakG = sqrtf(peakSq_);
-    features_.crest = (features_.aRmsG > 1e-4f) ? features_.aPeakG / features_.aRmsG : 0.0f;
-    features_.vRmsMmS = features_.aRmsG * kVelocityPerG;
-    sumSq_ = 0.0;
-    peakSq_ = 0.0f;
-    count_ = 0;
+    acc_.sumSq += d2;
+    if (d2 > acc_.peakSq) acc_.peakSq = d2;  // porównanie kwadratów – pierwiastek raz na okno (w sterowniku)
+    if (++acc_.count < cfg::kWindowSamples) return false;
+    window_ = acc_;
+    acc_ = VibrationWindow();
     return true;
   }
 
-  const VibrationFeatures& features() const { return features_; }
+  const VibrationWindow& lastWindow() const { return window_; }
 
  private:
-  static constexpr float kAlpha = 1.0f / (cfg::kGravityTauS * cfg::kSampleRateHz);
-  static constexpr float kVelocityPerG =
-      cfg::kStandardGravity * 1000.0f / (2.0f * static_cast<float>(PI) * cfg::kDominantFreqHz);
+  /// Stała czasowa filtru w próbkach (2 s x 100 Hz = 200) – liczona w czasie kompilacji.
+  static constexpr int32_t kTauSamples = static_cast<int32_t>(cfg::kGravityTauS * cfg::kSampleRateHz);
 
-  float ref_[3] = {0.0f, 0.0f, 0.0f};
+  int32_t ref_[3] = {0, 0, 0};
   bool refInit_ = false;
-  double sumSq_ = 0.0;
-  float peakSq_ = 0.0f;
-  uint16_t count_ = 0;
-  VibrationFeatures features_;
+  VibrationWindow acc_;
+  VibrationWindow window_;
 };
+
+/**
+ * @brief Cechy drgań z sum okna – obliczenia zmiennoprzecinkowe w zadaniu sterownika.
+ * @details Prędkość drgań szacowana jako v_RMS = a_RMS / (2*pi*f_dom) – założenie dominującej
+ *          składowej 1x obroty (cfg::kDominantFreqHz).
+ */
+VibrationFeatures computeVibrationFeatures(const VibrationWindow& w) {
+  constexpr float kLsbQ8PerG = Mpu6050::kAccLsbPerG * VibrationAccumulator::kQ;
+  constexpr float kVelocityPerG =
+      cfg::kStandardGravity * 1000.0f / (2.0f * static_cast<float>(PI) * cfg::kDominantFreqHz);
+  VibrationFeatures f;
+  if (w.count == 0) return f;
+  f.aRmsG = sqrtf(static_cast<float>(w.sumSq / w.count)) / kLsbQ8PerG;
+  f.aPeakG = sqrtf(static_cast<float>(w.peakSq)) / kLsbQ8PerG;
+  f.crest = (f.aRmsG > 1e-4f) ? f.aPeakG / f.aRmsG : 0.0f;
+  f.vRmsMmS = f.aRmsG * kVelocityPerG;
+  return f;
+}
 
 /**
  * @brief Licznik czasu pracy maszyny (motogodziny) i liczby uruchomień.
@@ -1170,22 +1247,24 @@ class MqttLink {
 // ============================================================================
 
 /**
- * @brief Zadanie akwizycji: próbkuje MPU6050 w takt timera, co 2,5 s czyta DHT22,
- *        wyznacza cechy drgań i publikuje migawkę do skrzynki sterownika.
+ * @brief Zadanie akwizycji: próbkuje MPU6050 w takt timera (100 Hz), sumuje okna drgań
+ *        i po każdym oknie (1 s) publikuje migawkę do skrzynki sterownika.
  * @details Zadanie śpi na powiadomieniu z ISR (ulTaskNotifyTake) – zero aktywnego czekania.
  *          Licznik powiadomień > 1 oznacza pominięty takt (przeciążenie) i jest raportowany.
+ *          Zadanie celowo wykonuje wyłącznie arytmetykę całkowitą: wywłaszcza sterownik na tym
+ *          samym rdzeniu, a symulator Wokwi nie zachowuje rejestrów FPU przy przełączaniu zadań
+ *          (zob. FpuIntegrityMonitor). Na sprzęcie oszczędza to też przełączania kontekstu FPU.
  */
 class AcquisitionService {
  public:
-  AcquisitionService() : mpu_(Wire, cfg::kMpuAddress), climate_(cfg::kPinDht) {}
+  AcquisitionService() : mpu_(Wire, cfg::kMpuAddress) {}
 
-  /** @brief Inicjalizuje czujniki, tworzy zadanie i uruchamia timer próbkowania. */
+  /** @brief Inicjalizuje czujnik, tworzy zadanie i uruchamia timer próbkowania. */
   bool begin() {
     Wire.begin(cfg::kPinI2c0Sda, cfg::kPinI2c0Scl, cfg::kI2cClockHz);
     Wire.setTimeOut(cfg::kI2cTimeoutMs);
     snap_.mpuOk = mpu_.begin();
     logMsg("[AKW] MPU6050: %s", snap_.mpuOk ? "OK (±4 g, ±500 °/s, DLPF 44 Hz)" : "BRAK ODPOWIEDZI");
-    climate_.begin();
     if (xTaskCreatePinnedToCore(&AcquisitionService::taskEntry, "acq", cfg::kAcqStack, this, cfg::kAcqPriority,
                                 &rtos::acqTask, 1) != pdPASS) {
       return false;
@@ -1198,7 +1277,6 @@ class AcquisitionService {
 
   void run() {
     const bool wdt = (esp_task_wdt_add(nullptr) == ESP_OK);  // nadzór watchdoga zadania
-    uint32_t lastDhtMs = millis() - cfg::kDhtPeriodMs;      // pierwszy odczyt DHT od razu
     uint32_t lastRetryMs = 0;
     uint8_t mpuErrors = 0;
     for (;;) {
@@ -1210,13 +1288,14 @@ class AcquisitionService {
       bool publish = false;
 
       if (snap_.mpuOk) {
-        Mpu6050::Sample sample;
+        Mpu6050::RawSample sample;
         if (mpu_.read(sample)) {
           mpuErrors = 0;
-          memcpy(snap_.accelG, sample.accG, sizeof(snap_.accelG));
-          snap_.mpuTempC = sample.tempC;
+          memcpy(snap_.accelRaw, sample.acc, sizeof(snap_.accelRaw));
+          snap_.mpuTempRaw = sample.temp;
           ++snap_.samples;
-          if (vib_.addSample(sample.accG, rtos::machineRunning.load(std::memory_order_relaxed))) {
+          if (vib_.addSample(sample.acc, rtos::machineRunning.load(std::memory_order_relaxed))) {
+            snap_.window = vib_.lastWindow();
             ++snap_.windows;
             publish = true;
           }
@@ -1233,15 +1312,7 @@ class AcquisitionService {
         publish = true;
       }
 
-      if (nowMs - lastDhtMs >= cfg::kDhtPeriodMs) {
-        lastDhtMs = nowMs;
-        climate_.poll();
-        publish = true;
-      }
-
       if (publish) {
-        snap_.vib = vib_.features();
-        snap_.climate = climate_.reading();
         snap_.timestampMs = nowMs;
         ++snap_.seq;
         xQueueOverwrite(rtos::sensorMailbox, &snap_);
@@ -1251,10 +1322,9 @@ class AcquisitionService {
   }
 
   Mpu6050 mpu_;
-  ClimateSensor climate_;
-  VibrationAnalyzer vib_;
+  VibrationAccumulator vib_;
   SampleTimer timer_;
-  SensorSnapshot snap_;
+  AcqSnapshot snap_;
 };
 
 // ============================================================================
@@ -1274,6 +1344,7 @@ class MachineController {
       : btnAck_(cfg::kPinBtnAck, "ACK"),
         btnService_(cfg::kPinBtnService, "SERWIS"),
         runInput_(cfg::kPinRun, "RUN"),
+        climate_(cfg::kPinDht),
         display_(Wire1),
         engine_(makeEngineConfig()) {}
 
@@ -1294,6 +1365,8 @@ class MachineController {
     Wire1.begin(cfg::kPinI2c1Sda, cfg::kPinI2c1Scl, cfg::kI2cClockHz);
     Wire1.setTimeOut(cfg::kI2cTimeoutMs);
     logMsg("[HMI] OLED: %s", display_.begin() ? "OK (I2C1)" : "BRAK ODPOWIEDZI");
+    climate_.begin();
+    lastDhtMs_ = millis() - cfg::kDhtPeriodMs;  // pierwszy odczyt DHT22 w pierwszym takcie
 
     emit(EventType::Boot, 0.0f);
     restoreCounters();
@@ -1312,9 +1385,11 @@ class MachineController {
     handleRemoteCommands(now64);
     pollConsole(now64);
     handleInputs(nowUs, nowMs, now64);
+    pollClimate(nowMs);
     handleSensors(now64);
     refreshIndicators();
     indicators_.update(nowMs);
+    fpuMonitor_.check();
 
     if (nowMs - lastDisplayMs_ >= cfg::kDisplayPeriodMs) {
       lastDisplayMs_ = nowMs;
@@ -1408,26 +1483,52 @@ class MachineController {
   }
 
   // --------------------------------------------------------------- czujniki i analiza
-  void handleSensors(uint64_t now64) {
-    SensorSnapshot s;
-    if (xQueuePeek(rtos::sensorMailbox, &s, 0) != pdTRUE || s.seq == lastSensorSeq_) return;
-    lastSensorSeq_ = s.seq;
+  /** @brief Odczyt DHT22 co 2,5 s (w sterowniku – jedynym zadaniu używającym FPU na rdzeniu 1). */
+  void pollClimate(uint32_t nowMs) {
+    if (nowMs - lastDhtMs_ < cfg::kDhtPeriodMs) return;
+    lastDhtMs_ = nowMs;
+    climate_.poll();
+    sys_.sensors.climate = climate_.reading();
+    updateFaults();
+  }
 
-    const uint8_t faults = (s.mpuOk ? 0 : kFaultMpu) | (s.climate.errorStreak >= cfg::kDhtFaultStreak ? kFaultDht : 0);
+  /** @brief Przelicza migawkę akwizycji na jednostki fizyczne; nowe okno drgań = krok analizy. */
+  void handleSensors(uint64_t now64) {
+    AcqSnapshot a;
+    if (xQueuePeek(rtos::sensorMailbox, &a, 0) != pdTRUE || a.seq == lastSensorSeq_) return;
+    lastSensorSeq_ = a.seq;
+
+    SensorSnapshot& s = sys_.sensors;
+    s.seq = a.seq;
+    s.timestampMs = a.timestampMs;
+    s.windows = a.windows;
+    s.mpuOk = a.mpuOk;
+    s.samples = a.samples;
+    s.overruns = a.overruns;
+    for (uint8_t i = 0; i < 3; ++i) s.accelG[i] = Mpu6050::accelG(a.accelRaw[i]);
+    s.mpuTempC = (a.samples > 0) ? Mpu6050::tempC(a.mpuTempRaw) : NAN;
+    updateFaults();
+    if (a.windows != lastWindows_) {  // nowe okno drgań = jeden krok analizy (1 s)
+      lastWindows_ = a.windows;
+      s.vib = computeVibrationFeatures(a.window);
+      analyze(now64);
+    }
+    refreshSystem(now64);
+  }
+
+  /** @brief Maska usterek czujników; zmiany zgłaszane jako zdarzenia SENSOR_FAULT / SENSOR_OK. */
+  void updateFaults() {
+    const SensorSnapshot& s = sys_.sensors;
+    const bool mpuFault = (s.seq > 0) && !s.mpuOk;  // stan MPU6050 znany po pierwszej migawce akwizycji
+    const uint8_t faults =
+        (mpuFault ? kFaultMpu : 0) | (s.climate.errorStreak >= cfg::kDhtFaultStreak ? kFaultDht : 0);
     const uint8_t raised = faults & ~sys_.faults;
     const uint8_t cleared = sys_.faults & ~faults;
     if (raised & kFaultMpu) emit(EventType::SensorFault, 1.0f);
     if (raised & kFaultDht) emit(EventType::SensorFault, 2.0f);
     if (cleared & kFaultMpu) emit(EventType::SensorOk, 1.0f);
     if (cleared & kFaultDht) emit(EventType::SensorOk, 2.0f);
-
-    sys_.sensors = s;
     sys_.faults = faults;
-    if (s.windows != lastWindows_) {  // nowe okno drgań = jeden krok analizy (1 s)
-      lastWindows_ = s.windows;
-      analyze(now64);
-    }
-    refreshSystem(now64);
   }
 
   /** @brief Krok analizy predykcyjnej: dane -> pdm::PredictiveEngine -> zdarzenia i stan systemu. */
@@ -1748,20 +1849,22 @@ class MachineController {
 
   void printDiagnostics() {
     logMsg("[DIAG] sterta %lu B (min %lu B) | wolny stos: acq %u B, comms %u B, loop %u B | próbki %lu, "
-           "pominięte takty %lu | zbocza ACK=%lu SERWIS=%lu RUN=%lu | historia %u/%u, zdarzenia %u/%u | MQTT "
-           "wysłane %lu, utracone %lu",
+           "pominięte takty %lu | zbocza ACK=%lu SERWIS=%lu RUN=%lu",
            (unsigned long)ESP.getFreeHeap(), (unsigned long)ESP.getMinFreeHeap(),
            (unsigned)uxTaskGetStackHighWaterMark(rtos::acqTask), (unsigned)uxTaskGetStackHighWaterMark(rtos::commsTask),
            (unsigned)uxTaskGetStackHighWaterMark(nullptr), (unsigned long)sys_.sensors.samples,
            (unsigned long)sys_.sensors.overruns, (unsigned long)btnAck_.edges(), (unsigned long)btnService_.edges(),
-           (unsigned long)runInput_.edges(), (unsigned)history_.size(), (unsigned)cfg::kHistorySize,
-           (unsigned)eventLog_.size(), (unsigned)cfg::kEventLogSize, (unsigned long)link_->sent(),
-           (unsigned long)eventsDropped_);
+           (unsigned long)runInput_.edges());
+    logMsg("[DIAG] historia %u/%u, zdarzenia %u/%u | MQTT wysłane %lu, utracone %lu | FPU: błędy %lu / kontrole %lu",
+           (unsigned)history_.size(), (unsigned)cfg::kHistorySize, (unsigned)eventLog_.size(),
+           (unsigned)cfg::kEventLogSize, (unsigned long)link_->sent(), (unsigned long)eventsDropped_,
+           (unsigned long)fpuMonitor_.errors(), (unsigned long)fpuMonitor_.checks());
   }
 
   DebouncedInput btnAck_;
   DebouncedInput btnService_;
   DebouncedInput runInput_;
+  ClimateSensor climate_;
   RunHourMeter hours_;
   Indicators indicators_;
   StatusDisplay display_;
@@ -1769,6 +1872,7 @@ class MachineController {
   CounterStore store_;
   History history_;
   pdm::RingBuffer<Event, cfg::kEventLogSize> eventLog_;
+  FpuIntegrityMonitor fpuMonitor_;
   const MqttLink* link_ = nullptr;
   SystemSnapshot sys_;
   double lastAnalysisTotalH_ = 0.0;
@@ -1776,6 +1880,7 @@ class MachineController {
   float lastPersistedEq_ = -1.0f;
   uint32_t lastSensorSeq_ = 0;
   uint32_t lastWindows_ = 0;
+  uint32_t lastDhtMs_ = 0;
   uint32_t lastDisplayMs_ = 0;
   uint32_t lastStatusMs_ = 0;
   uint32_t lastHistoryMs_ = 0;
@@ -1806,7 +1911,7 @@ void setup() {
   logMsg(" Czas maszyny przyspieszony x%lu (1 s = %.1f h pracy)", (unsigned long)cfg::kTimeScale, cfg::kStepHours);
   logMsg("==================================================");
 
-  rtos::sensorMailbox = xQueueCreate(1, sizeof(SensorSnapshot));
+  rtos::sensorMailbox = xQueueCreate(1, sizeof(AcqSnapshot));
   rtos::systemMailbox = xQueueCreate(1, sizeof(SystemSnapshot));
   rtos::eventQueue = xQueueCreate(cfg::kEventQueueLen, sizeof(Event));
   rtos::commandQueue = xQueueCreate(cfg::kCommandQueueLen, sizeof(RemoteCommand));
